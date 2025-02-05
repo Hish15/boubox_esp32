@@ -1,5 +1,5 @@
 
-
+#include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_PN532.h>
@@ -11,7 +11,9 @@
 
 
 Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
-void setup()
+
+
+void init_pn532()
 {
   // initialize LED digital pin as an output.
   //pinMode(LED_BUILTIN, OUTPUT);
@@ -32,7 +34,7 @@ void setup()
   Serial.println("Waiting for an ISO14443A Card ...");
 }
 
-void loop()
+void wait_for_nfc()
 {
   uint8_t success;
   uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
@@ -104,8 +106,30 @@ void loop()
       Serial.println("This doesn't seem to be an NTAG203 tag (UUID length != 7 bytes)!");
     }
 
-    // Wait a bit before trying again
+
+    }
+}
+
+
+
+extern "C" void app_main()
+{
+  initArduino();
+
+  // Arduino-like setup()
+  Serial.begin(9600);
+  while(!Serial){
+    ; // wait for serial port to connect
+  }
+  init_pn532();
+
+  // Arduino-like loop()
+  while(true){
+    wait_for_nfc();
+        // Wait a bit before trying again
     Serial.println("\n\nDone, will retry in 3 seconds!");
     delay(3000);
-    }
+  }
+
+  // WARNING: if program reaches end of function app_main() the MCU will restart.
 }

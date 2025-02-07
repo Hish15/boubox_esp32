@@ -10,7 +10,8 @@
 #define PN532_RESET (3)  // Not connected by default on the NFC Shield
 
 
-Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
+TwoWire nfc_i2c_com(0); 
+Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET, &nfc_i2c_com);
 
 
 void init_pn532()

@@ -11,7 +11,21 @@
 File myFile;
 
 
+void readFile(fs::FS &fs, const char * path){
+  Serial.printf("Reading file: %s\n", path);
 
+  File file = fs.open(path);
+  if(!file){
+    Serial.println("Failed to open file for reading");
+    return;
+  }
+
+  Serial.print("Read from file: ");
+  while(file.available()){
+    Serial.write(file.read());
+  }
+  file.close();
+}
 
 
 
@@ -34,6 +48,8 @@ extern "C" void app_main()
     while (1);
   }
   Serial.println("initialization done.");
+
+  readFile(SD, "/test.txt");
 
 
   Adafruit_PN532& nfc = init_pn532();

@@ -5,7 +5,10 @@
 #include <Wire.h>
 
 
+#include <SPI.h>
+#include <SD.h>
 
+File myFile;
 
 
 
@@ -22,6 +25,17 @@ extern "C" void app_main()
   while(!Serial){
     ; // wait for serial port to connect
   }
+
+  Serial.print("Initializing SD card...");
+  SPIClass spi_sd(VSPI);
+
+  if (!SD.begin(5, spi_sd)) {
+    Serial.println("initialization failed!");
+    while (1);
+  }
+  Serial.println("initialization done.");
+
+
   Adafruit_PN532& nfc = init_pn532();
 
   // Arduino-like loop()

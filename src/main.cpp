@@ -1,5 +1,6 @@
 
 #include "nfc_reader.hpp"
+#include "audio_player.hpp"
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -53,9 +54,8 @@ extern "C" void app_main()
   }
 
 
-  source = new AudioFileSourceSD();
-  out = new AudioOutputI2S(0, 1);
-  decoder = new AudioGeneratorWAV();
+  AudioPlayer player;
+
   
   Serial.print("Initializing SD card...");
   SPIClass spi_sd(VSPI);
@@ -73,7 +73,6 @@ extern "C" void app_main()
   dir = SD.open("/"); 
   while(true){
     if ((decoder) && (decoder->isRunning())) {
-      isFirstLoop = true;
       vTaskDelay(1);
       if (!decoder->loop()) decoder->stop();
     } else {

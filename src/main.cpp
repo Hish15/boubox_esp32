@@ -40,6 +40,35 @@ void readFile(fs::FS &fs, const char * path){
 }
 
 
+bool play_next_song(File &dir, AudioGeneratorWAV *decoder, AudioFileSourceSD *source, AudioOutputI2S *out) {
+  File file = dir.openNextFile();
+  //Look for the next WAV file in the directory
+  while (file && String(file.name()).endsWith(".WAV") == false) {
+    file = dir.openNextFile();
+  }
+  if (!file) {
+    Serial.println(F("Playback from SD card done\n"));
+    return false;
+  }
+  
+  source->close();
+  if (source->open(file.path()) == false) {
+    Serial.printf_P(PSTR("Error opening '%s'\n"), file.name());
+    return false;
+  }
+
+  Serial.printf_P(PSTR("Playing '%s' from SD card...\n"), file.name());
+  decoder->begin(source, out);
+  
+  return true;    
+}
+
+enum class State
+{
+  IDLE,
+  MUSIC_ENDED,
+  PLAYING
+};
 
 
 extern "C" void app_main()
@@ -71,27 +100,25 @@ extern "C" void app_main()
 
   Adafruit_PN532& nfc = init_pn532();
   dir = SD.open("/"); 
+  State state = State::IDLE;
   while(true){
-    if ((decoder) && (decoder->isRunning())) {
-      isFirstLoop = true;
-      vTaskDelay(1);
-      if (!decoder->loop()) decoder->stop();
-    } else {
-      File file = dir.openNextFile();
-      if (file) {     
-        if (String(file.name()).endsWith(".WAV")) {
-          source->close();
-          if (source->open(file.path())) {
-            Serial.printf_P(PSTR("Playing '%s' from SD card...\n"), file.name());
-            decoder->begin(source, out);
-          } else {
-            Serial.printf_P(PSTR("Error opening '%s'\n"), file.name());
-          }
-        } 
-      } else {
-        Serial.println(F("Playback from SD card done\n"));
-        delay(1000);
-      }       
+    switch(state)
+    {
+      case State::PLAYING: {
+        vTaskDelay(1);
+        state = decoder->isRunning() ?  State::PLAYING : State::MUSIC_ENDED;
+        if (!decoder->loop()) decoder->stop();
+      }
+      break;
+      case State::MUSIC_ENDED:{
+        const bool is_playing = play_next_song(dir, decoder, source, out);
+        state = is_playing? State::PLAYING : State::IDLE;
+      }
+      break;
+      case State::IDLE:{
+        vTaskDelay(1000);
+      }
+      break;
     }
   }
 

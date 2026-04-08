@@ -1,0 +1,28 @@
+{
+  "name": "boubox_esp32 (ESP-IDF)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "runArgs": [
+    "--device=/dev/ttyUSB0:/dev/ttyUSB0"
+  ],
+  
+  "customizations": {
+    "vscode": {
+      // Pre-configure ESP-IDF extension settings for the dev container
+      "settings": {
+        "idf.showOnboardingOnInit": false,
+        "idf.toolsPath": "/opt/esp",
+        "idf.espIdfPath": "/opt/esp/idf",
+        "terminal.integrated.shell.linux": "/bin/bash"
+      },
+      // Install relevant extensions in the dev container
+      "extensions": [
+        "espressif.esp-idf-extension",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.cpptools"
+      ]
+    }
+  },
+	"userEnvProbe": "loginInteractiveShell"
+}

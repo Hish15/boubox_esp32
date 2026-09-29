@@ -1,19 +1,13 @@
 {
-  "C_Cpp.intelliSenseEngine": "default",
-  "idf.espIdfPath": "/home/hish15/esp/v5.5.1/esp-idf",
-  "idf.pythonInstallPath": "/home/hish15/.pyenv/versions/3.13.8/bin/python3",
-  "idf.openOcdConfigs": [
-    "board/esp32s3-builtin.cfg"
-  ],
-  "idf.port": "/dev/ttyS3",
-  "idf.toolsPath": "/home/hish15/.espressif",
-  "idf.customExtraVars": {
-    "IDF_TARGET": "esp32s3"
-  },
-  "clangd.path": "/home/hish15/.espressif/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin/clangd",
-  "clangd.arguments": [
-    "--background-index",
-    "--query-driver=/home/hish15/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc",
-    "--compile-commands-dir=${workspaceFolder}/build"
-  ]
+    "cmake.cmakePath": "/opt/esp/tools/cmake/3.30.2/bin/cmake",
+    "idf.pythonInstallPath": "/usr/bin/python3",
+    "idf.currentSetup": "/opt/esp/idf",
+    "idf.openOcdConfigs": [
+        "board/esp32s3-builtin.cfg"
+    ],
+    "idf.customExtraVars": {
+        "IDF_TARGET": "esp32s3"
+    },
+    "idf.flashType": "JTAG",
+    "idf.port": "/dev/ttyACM0"
 }

@@ -1,17 +1,101 @@
-menu "Blink Example Configuration"
+menu "Boubox Configuration"
 
-    config BLINK_GPIO
-        int "Blink GPIO number"
-        range 0 48
-        default 2
-        help
-            GPIO number (IOxx) driving the LED to blink.
-            Change this to match the LED wired on your ESP32-S3-WROOM-1 board.
+    menu "SD card (SPI)"
+        config BOUBOX_SD_MOSI_GPIO
+            int "MOSI GPIO"
+            range 0 48
+            default 11
 
-    config BLINK_PERIOD_MS
-        int "Blink period in ms"
-        default 1000
-        help
-            Define the blinking period in milliseconds.
+        config BOUBOX_SD_MISO_GPIO
+            int "MISO GPIO"
+            range 0 48
+            default 13
+
+        config BOUBOX_SD_SCLK_GPIO
+            int "SCLK GPIO"
+            range 0 48
+            default 12
+
+        config BOUBOX_SD_CS_GPIO
+            int "CS GPIO"
+            range 0 48
+            default 10
+
+        config BOUBOX_SD_MAX_FREQ_KHZ
+            int "SPI clock frequency (kHz)"
+            range 400 40000
+            default 20000
+    endmenu
+
+    menu "PN532 NFC reader (I2C)"
+        config BOUBOX_NFC_SDA_GPIO
+            int "SDA GPIO"
+            range 0 48
+            default 8
+
+        config BOUBOX_NFC_SCL_GPIO
+            int "SCL GPIO"
+            range 0 48
+            default 9
+
+        config BOUBOX_NFC_RESET_GPIO
+            int "RSTPDN GPIO (-1 if not connected)"
+            range -1 48
+            default -1
+
+        config BOUBOX_NFC_POLL_PERIOD_MS
+            int "Tag polling period (ms)"
+            range 50 5000
+            default 250
+    endmenu
+
+    menu "I2S audio output"
+        config BOUBOX_I2S_BCLK_GPIO
+            int "BCLK GPIO"
+            range 0 48
+            default 5
+
+        config BOUBOX_I2S_WS_GPIO
+            int "WS / LRCK GPIO"
+            range 0 48
+            default 6
+
+        config BOUBOX_I2S_DOUT_GPIO
+            int "DOUT GPIO"
+            range 0 48
+            default 7
+
+        config BOUBOX_DEFAULT_VOLUME
+            int "Initial volume (0-100)"
+            range 0 100
+            default 30
+
+        config BOUBOX_VOLUME_STEP
+            int "Volume step (1-100)"
+            range 1 100
+            default 5
+    endmenu
+
+    menu "Buttons (active low, wired to GND)"
+        config BOUBOX_BUTTON_UP_GPIO
+            int "UP (volume +) GPIO"
+            range 0 48
+            default 15
+
+        config BOUBOX_BUTTON_DOWN_GPIO
+            int "DOWN (volume -) GPIO"
+            range 0 48
+            default 16
+
+        config BOUBOX_BUTTON_NEXT_GPIO
+            int "NEXT GPIO"
+            range 0 48
+            default 17
+
+        config BOUBOX_BUTTON_PREVIOUS_GPIO
+            int "PREVIOUS GPIO"
+            range 0 48
+            default 18
+    endmenu
 
 endmenu

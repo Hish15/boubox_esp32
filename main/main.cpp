@@ -1,26 +1,19 @@
-#include "Blinker.hpp"
+#include "application.hpp"
 
+#include "esp_log.h"
+#include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_log.h"
-
-namespace
-{
-    constexpr char kTag[] = "blink";
-}
 
 extern "C" void app_main(void)
 {
-    Blinker blinker(static_cast<gpio_num_t>(CONFIG_BLINK_GPIO), CONFIG_BLINK_PERIOD_MS);
-    blinker.Init();
+    // Lives for the whole program lifetime, the tasks it starts keep running after app_main returns.
+    static boubox::Application application;
 
-    ESP_LOGI(kTag, "Blinking on GPIO%d every %lums", CONFIG_BLINK_GPIO, static_cast<unsigned long>(blinker.PeriodMs()));
-
-    while (true)
+    if (application.Start() != ESP_OK)
     {
-        blinker.Toggle();
-        vTaskDelay(pdMS_TO_TICKS(blinker.PeriodMs() / 2));
-        ESP_LOGI(kTag, "Toggled GPIO%d", CONFIG_BLINK_GPIO);
-    
+        ESP_LOGE("boubox", "Startup failed, restarting in 5s");
+        vTaskDelay(pdMS_TO_TICKS(5000));
+        esp_restart();
     }
 }

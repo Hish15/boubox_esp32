@@ -228,17 +228,22 @@ esp_err_t Pn532::WriteCommand(uint8_t cmd, const uint8_t* data, size_t len)
 esp_err_t Pn532::WaitReady(uint32_t timeout_ms)
 {
     const int64_t deadline = NowMs() + timeout_ms;
+    // The chip NACKs while busy: these expected NACKs would flood the log, so mute the driver while polling.
+    const esp_log_level_t previous_level = esp_log_level_get("i2c.master");
+    esp_log_level_set("i2c.master", ESP_LOG_NONE);
+    esp_err_t result = ESP_ERR_TIMEOUT;
     do
     {
         uint8_t status = 0;
-        // The chip NACKs while busy: keep polling until the deadline.
         if (i2c_master_receive(dev_, &status, 1, kI2cTimeoutMs) == ESP_OK && (status & 0x01))
         {
-            return ESP_OK;
+            result = ESP_OK;
+            break;
         }
         vTaskDelay(1);
     } while (NowMs() < deadline);
-    return ESP_ERR_TIMEOUT;
+    esp_log_level_set("i2c.master", previous_level);
+    return result;
 }
 
 esp_err_t Pn532::ReadAck(uint32_t timeout_ms)

@@ -43,7 +43,8 @@ esp_err_t Application::Start()
     nfc_cfg.scl = static_cast<gpio_num_t>(CONFIG_BOUBOX_NFC_SCL_GPIO);
     nfc_cfg.reset = static_cast<gpio_num_t>(CONFIG_BOUBOX_NFC_RESET_GPIO);
     ESP_RETURN_ON_ERROR(tag_scanner_.Start(nfc_cfg, CONFIG_BOUBOX_NFC_POLL_PERIOD_MS,
-                                           [this](const std::string& folder) { OnTag(folder); }),
+                                           [this](const std::string& folder) { OnTag(folder); },
+                                           [this]() { player_.Pause(); }),
                         kTag, "tag scanner init failed");
 
     ESP_LOGI(kTag, "Ready");

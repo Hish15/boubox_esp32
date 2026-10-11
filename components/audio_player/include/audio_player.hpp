@@ -45,6 +45,9 @@ public:
     void Next();
     void Previous();
     void Stop();
+    // Pause keeps the position; presenting the same folder again (or Resume) continues the track.
+    void Pause();
+    void Resume();
     void VolumeUp();
     void VolumeDown();
     uint8_t volume() const { return volume_.load(); }
@@ -57,6 +60,8 @@ private:
         PlayFolder,
         Next,
         Previous,
+        Pause,
+        Resume,
         Stop
     };
 
@@ -93,6 +98,8 @@ private:
 
     std::vector<std::string> playlist_;
     int index_ = -1;
+    bool paused_ = false;
+    std::string folder_;
     std::FILE* file_ = nullptr;
     WavInfo wav_{};
     uint32_t bytes_remaining_ = 0;

@@ -101,6 +101,16 @@ void AudioPlayer::Stop()
     Post(CommandType::Stop);
 }
 
+void AudioPlayer::Pause()
+{
+    Post(CommandType::Pause);
+}
+
+void AudioPlayer::Resume()
+{
+    Post(CommandType::Resume);
+}
+
 void AudioPlayer::VolumeUp()
 {
     SetVolume(volume_.load() + config_.volume_step);
@@ -142,7 +152,7 @@ void AudioPlayer::Run()
     Command cmd;
     while (true)
     {
-        if (file_ == nullptr)
+        if (file_ == nullptr || paused_)
         {
             xQueueReceive(queue_, &cmd, portMAX_DELAY);
             HandleCommand(cmd);
@@ -167,6 +177,8 @@ void AudioPlayer::HandleCommand(const Command& cmd)
 {
     ESP_LOGI(kTag, "Command: %s (playing=%d, track=%d)",
              cmd.type == CommandType::PlayFolder  ? "PlayFolder"
+             : cmd.type == CommandType::Pause     ? "Pause"
+             : cmd.type == CommandType::Resume    ? "Resume"
              : cmd.type == CommandType::Next      ? "Next"
              : cmd.type == CommandType::Previous  ? "Previous"
                                                   : "Stop",
@@ -174,15 +186,38 @@ void AudioPlayer::HandleCommand(const Command& cmd)
     switch (cmd.type)
     {
     case CommandType::PlayFolder:
+        if (paused_ && file_ != nullptr && folder_ == cmd.folder)
+        {
+            ESP_LOGI(kTag, "Same folder '%s' presented again: resuming track %d", cmd.folder, index_);
+            paused_ = false;
+            break;
+        }
         StopPlayback();
         if (LoadPlaylist(cmd.folder))
         {
+            folder_ = cmd.folder;
             StartTrack(0, 1);
         }
         break;
 
+    case CommandType::Pause:
+        if (file_ != nullptr && !paused_)
+        {
+            paused_ = true;
+            ESP_LOGI(kTag, "Paused track %d", index_);
+        }
+        break;
+
+    case CommandType::Resume:
+        if (file_ != nullptr && paused_)
+        {
+            paused_ = false;
+            ESP_LOGI(kTag, "Resumed track %d", index_);
+        }
+        break;
+
     case CommandType::Next:
-        if (file_ != nullptr)
+        if (file_ != nullptr && !paused_)
         {
             const int next = index_ + 1;
             CloseTrack();
@@ -191,7 +226,7 @@ void AudioPlayer::HandleCommand(const Command& cmd)
         break;
 
     case CommandType::Previous:
-        if (file_ != nullptr)
+        if (file_ != nullptr && !paused_)
         {
             const uint64_t played_ms = frames_played_ * 1000 / wav_.sample_rate;
             if (played_ms > config_.restart_threshold_ms || index_ == 0)
@@ -324,6 +359,8 @@ void AudioPlayer::StopPlayback()
 {
     ESP_LOGI(kTag, "Stopping playback");
     CloseTrack();
+    paused_ = false;
+    folder_.clear();
     playlist_.clear();
     index_ = -1;
 

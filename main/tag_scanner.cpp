@@ -23,11 +23,13 @@ constexpr uint32_t kInitRetryMs = 2000;
 
 }  // namespace
 
-esp_err_t TagScanner::Start(const Pn532::Config& pn532_config, uint32_t poll_period_ms, Callback callback)
+esp_err_t TagScanner::Start(const Pn532::Config& pn532_config, uint32_t poll_period_ms, Callback callback,
+                            RemovedCallback removed_callback)
 {
     pn532_config_ = pn532_config;
     poll_period_ms_ = poll_period_ms;
     callback_ = std::move(callback);
+    removed_callback_ = std::move(removed_callback);
     ESP_RETURN_ON_FALSE(xTaskCreate(TaskEntry, "tag_scanner", 4096, this, 4, nullptr) == pdPASS, ESP_ERR_NO_MEM, kTag,
                         "task creation failed");
     return ESP_OK;
@@ -85,6 +87,10 @@ void TagScanner::Run()
                 tag_present = false;
                 tag_handled = false;
                 ESP_LOGI(kTag, "Tag removed");
+                if (removed_callback_)
+                {
+                    removed_callback_();
+                }
             }
             continue;
         }

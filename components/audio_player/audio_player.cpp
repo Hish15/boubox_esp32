@@ -65,17 +65,23 @@ esp_err_t AudioPlayer::Init(const Config& config)
     std_cfg.gpio_cfg.din = I2S_GPIO_UNUSED;
     ESP_RETURN_ON_ERROR(i2s_channel_init_std_mode(tx_, &std_cfg), kTag, "I2S init failed");
     current_rate_ = 44100;
+    ESP_LOGI(kTag, "Init: port=%d bclk=%d ws=%d dout=%d mclk=%d base_path=%s volume=%u step=%u",
+             static_cast<int>(config_.port), static_cast<int>(config_.bclk), static_cast<int>(config_.ws),
+             static_cast<int>(config_.dout), static_cast<int>(config_.mclk), config_.base_path,
+             static_cast<unsigned>(volume_.load()), static_cast<unsigned>(config_.volume_step));
 
     queue_ = xQueueCreate(8, sizeof(Command));
     ESP_RETURN_ON_FALSE(queue_ != nullptr, ESP_ERR_NO_MEM, kTag, "queue creation failed");
     ESP_RETURN_ON_FALSE(xTaskCreate(TaskEntry, "audio", 8192, this, 6, nullptr) == pdPASS, ESP_ERR_NO_MEM, kTag,
                         "task creation failed");
+    ESP_LOGI(kTag, "Player task started");
     return ESP_OK;
 }
 
 esp_err_t AudioPlayer::PlayFolder(const char* folder)
 {
     ESP_RETURN_ON_FALSE(IsValidFolderName(folder), ESP_ERR_INVALID_ARG, kTag, "invalid folder name");
+    ESP_LOGI(kTag, "PlayFolder requested: '%s'", folder);
     Post(CommandType::PlayFolder, folder);
     return ESP_OK;
 }
@@ -113,6 +119,7 @@ void AudioPlayer::SetVolume(int volume)
 
 void AudioPlayer::Post(CommandType type, const char* folder)
 {
+    ESP_LOGD(kTag, "Post command %d", static_cast<int>(type));
     Command cmd = {};
     cmd.type = type;
     if (folder != nullptr)
@@ -148,6 +155,8 @@ void AudioPlayer::Run()
         }
         if (file_ != nullptr && !StreamChunk())
         {
+            ESP_LOGI(kTag, "Track %d finished (%llu frames played)", index_,
+                     static_cast<unsigned long long>(frames_played_));
             CloseTrack();
             StartTrack(index_ + 1, 1);
         }
@@ -156,6 +165,12 @@ void AudioPlayer::Run()
 
 void AudioPlayer::HandleCommand(const Command& cmd)
 {
+    ESP_LOGI(kTag, "Command: %s (playing=%d, track=%d)",
+             cmd.type == CommandType::PlayFolder  ? "PlayFolder"
+             : cmd.type == CommandType::Next      ? "Next"
+             : cmd.type == CommandType::Previous  ? "Previous"
+                                                  : "Stop",
+             file_ != nullptr, index_);
     switch (cmd.type)
     {
     case CommandType::PlayFolder:
@@ -181,6 +196,8 @@ void AudioPlayer::HandleCommand(const Command& cmd)
             const uint64_t played_ms = frames_played_ * 1000 / wav_.sample_rate;
             if (played_ms > config_.restart_threshold_ms || index_ == 0)
             {
+                ESP_LOGI(kTag, "Previous: restarting track %d (played %llu ms)", index_,
+                         static_cast<unsigned long long>(played_ms));
                 std::fseek(file_, wav_.data_offset, SEEK_SET);
                 bytes_remaining_ = wav_.data_size;
                 frames_played_ = 0;
@@ -243,11 +260,13 @@ bool AudioPlayer::StartTrack(int index, int step)
             index = 0;
             step = 1;
         }
+        ESP_LOGI(kTag, "Starting track %d/%u", index + 1, static_cast<unsigned>(playlist_.size()));
         if (OpenTrack(playlist_[index]))
         {
             index_ = index;
             return true;
         }
+        ESP_LOGW(kTag, "Skipping track %d", index);
         index += step;
     }
 
@@ -271,7 +290,9 @@ bool AudioPlayer::OpenTrack(const std::string& path)
         info.channels < 1 || info.channels > 2 ||
         info.sample_rate == 0)
     {
-        ESP_LOGW(kTag, "Unsupported WAV file %s", path.c_str());
+        ESP_LOGW(kTag, "Unsupported WAV file %s (%u Hz, %u ch, %u bit)", path.c_str(),
+                 static_cast<unsigned>(info.sample_rate), static_cast<unsigned>(info.channels),
+                 static_cast<unsigned>(info.bits_per_sample));
         std::fclose(file);
         return false;
     }
@@ -301,6 +322,7 @@ void AudioPlayer::CloseTrack()
 
 void AudioPlayer::StopPlayback()
 {
+    ESP_LOGI(kTag, "Stopping playback");
     CloseTrack();
     playlist_.clear();
     index_ = -1;
@@ -325,12 +347,15 @@ esp_err_t AudioPlayer::PrepareOutput(uint32_t sample_rate)
             ESP_RETURN_ON_ERROR(i2s_channel_disable(tx_), kTag, "I2S disable failed");
             channel_enabled_ = false;
         }
+        ESP_LOGI(kTag, "Sample rate change: %u -> %u Hz", static_cast<unsigned>(current_rate_),
+                 static_cast<unsigned>(sample_rate));
         i2s_std_clk_config_t clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(sample_rate);
         ESP_RETURN_ON_ERROR(i2s_channel_reconfig_std_clock(tx_, &clk_cfg), kTag, "I2S clock reconfig failed");
         current_rate_ = sample_rate;
     }
     if (!channel_enabled_)
     {
+        ESP_LOGI(kTag, "Enabling I2S channel");
         ESP_RETURN_ON_ERROR(i2s_channel_enable(tx_), kTag, "I2S enable failed");
         channel_enabled_ = true;
     }
@@ -346,6 +371,7 @@ bool AudioPlayer::StreamChunk()
     const size_t to_read = std::min<size_t>(max_bytes, bytes_remaining_) / frame_bytes * frame_bytes;
     if (to_read == 0)
     {
+        ESP_LOGD(kTag, "End of data reached");
         return false;
     }
 
@@ -353,6 +379,8 @@ bool AudioPlayer::StreamChunk()
     const size_t frames = read / frame_bytes;
     if (frames == 0)
     {
+        ESP_LOGW(kTag, "Read returned no data with %u bytes remaining (truncated file?)",
+                 static_cast<unsigned>(bytes_remaining_));
         return false;
     }
     bytes_remaining_ -= static_cast<uint32_t>(frames * frame_bytes);
@@ -402,6 +430,11 @@ bool AudioPlayer::StreamChunk()
     {
         ESP_LOGE(kTag, "I2S write failed: %s", esp_err_to_name(err));
         return false;
+    }
+    if (written != samples_out * sizeof(int16_t))
+    {
+        ESP_LOGW(kTag, "Short I2S write: %u/%u bytes", static_cast<unsigned>(written),
+                 static_cast<unsigned>(samples_out * sizeof(int16_t)));
     }
     return true;
 }

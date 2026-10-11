@@ -16,7 +16,7 @@
 
 namespace boubox {
 
-// Plays all the WAV files (16-bit PCM, mono or stereo) of a folder through I2S.
+// Plays all the WAV files (8/16/24/32-bit PCM, mono or stereo) of a folder through I2S.
 // Public methods are thread safe: they only post commands to the player task.
 class AudioPlayer
 {
@@ -98,8 +98,8 @@ private:
     uint32_t bytes_remaining_ = 0;
     uint64_t frames_played_ = 0;
 
-    int16_t read_buf_[kReadBytes / sizeof(int16_t)];
-    int16_t out_buf_[kReadBytes];  // mono input is expanded to stereo
+    uint8_t read_buf_[kReadBytes];  // raw little-endian PCM (8/16/24/32-bit)
+    int16_t out_buf_[kReadBytes];   // 16-bit stereo output, mono input is expanded
 };
 
 }  // namespace boubox

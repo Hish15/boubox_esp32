@@ -266,7 +266,9 @@ bool AudioPlayer::OpenTrack(const std::string& path)
     }
 
     WavInfo info;
-    if (!ParseWavHeader(file, &info) || info.bits_per_sample != 16 || info.channels < 1 || info.channels > 2 ||
+    if (!ParseWavHeader(file, &info) || (info.bits_per_sample != 8 && info.bits_per_sample != 16 && info.bits_per_sample != 24 &&
+                                      info.bits_per_sample != 32) ||
+        info.channels < 1 || info.channels > 2 ||
         info.sample_rate == 0)
     {
         ESP_LOGW(kTag, "Unsupported WAV file %s", path.c_str());
@@ -283,8 +285,8 @@ bool AudioPlayer::OpenTrack(const std::string& path)
     wav_ = info;
     bytes_remaining_ = info.data_size;
     frames_played_ = 0;
-    ESP_LOGI(kTag, "Playing %s (%u Hz, %u ch)", path.c_str(), static_cast<unsigned>(info.sample_rate),
-             static_cast<unsigned>(info.channels));
+    ESP_LOGI(kTag, "Playing %s (%u Hz, %u ch, %u bit)", path.c_str(), static_cast<unsigned>(info.sample_rate),
+             static_cast<unsigned>(info.channels), static_cast<unsigned>(info.bits_per_sample));
     return true;
 }
 
@@ -337,8 +339,11 @@ esp_err_t AudioPlayer::PrepareOutput(uint32_t sample_rate)
 
 bool AudioPlayer::StreamChunk()
 {
-    const size_t frame_bytes = wav_.channels * sizeof(int16_t);
-    const size_t to_read = std::min<size_t>(sizeof(read_buf_), bytes_remaining_) / frame_bytes * frame_bytes;
+    const size_t sample_bytes = wav_.bits_per_sample / 8;
+    const size_t frame_bytes = wav_.channels * sample_bytes;
+    // Output is always stereo 16-bit: cap the frames so they fit out_buf_.
+    const size_t max_bytes = std::min(sizeof(read_buf_), (sizeof(out_buf_) / sizeof(int16_t) / 2) * frame_bytes);
+    const size_t to_read = std::min<size_t>(max_bytes, bytes_remaining_) / frame_bytes * frame_bytes;
     if (to_read == 0)
     {
         return false;
@@ -358,20 +363,36 @@ bool AudioPlayer::StreamChunk()
     const int32_t gain = volume * volume * 32768 / (100 * 100);
 
     const size_t samples_out = frames * 2;
-    if (wav_.channels == 1)
+    const size_t channels = wav_.channels;
+    const size_t total_samples = frames * channels;
+    for (size_t i = 0; i < total_samples; ++i)
     {
-        for (size_t i = 0; i < frames; ++i)
+        const uint8_t* p = read_buf_ + i * sample_bytes;
+        int32_t s16;  // sample converted to signed 16-bit
+        switch (wav_.bits_per_sample)
         {
-            const auto sample = static_cast<int16_t>((read_buf_[i] * gain) >> 15);
+            case 8:
+                s16 = (static_cast<int32_t>(p[0]) - 128) << 8;  // 8-bit WAV is unsigned
+                break;
+            case 16:
+                s16 = static_cast<int16_t>(p[0] | (p[1] << 8));
+                break;
+            case 24:
+                s16 = static_cast<int16_t>(p[1] | (p[2] << 8));
+                break;
+            default:  // 32
+                s16 = static_cast<int16_t>(p[2] | (p[3] << 8));
+                break;
+        }
+        const auto sample = static_cast<int16_t>((s16 * gain) >> 15);
+        if (channels == 1)
+        {
             out_buf_[2 * i] = sample;
             out_buf_[2 * i + 1] = sample;
         }
-    }
-    else
-    {
-        for (size_t i = 0; i < samples_out; ++i)
+        else
         {
-            out_buf_[i] = static_cast<int16_t>((read_buf_[i] * gain) >> 15);
+            out_buf_[i] = sample;
         }
     }
 

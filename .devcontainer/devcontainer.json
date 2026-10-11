@@ -10,7 +10,6 @@
     "containerEnv": {
         "IDF_TARGET": "esp32s3"
     },
-    "updateRemoteUserUID": true,
     "customizations": {
         "vscode": {
             "extensions": [

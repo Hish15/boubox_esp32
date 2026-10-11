@@ -9,5 +9,6 @@
         "IDF_TARGET": "esp32s3"
     },
     "idf.flashType": "JTAG",
-    "idf.port": "/dev/ttyACM0"
+    "idf.port": "/dev/ttyACM0",
+    "cmake.sourceDirectory": "/wsl.localhost/Ubuntu-26.04/home/hish15/gitdir/boubox_esp32/main"
 }

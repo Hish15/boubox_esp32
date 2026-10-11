@@ -14,7 +14,7 @@ struct WavInfo
     uint32_t data_size = 0;   // size in bytes of the sample data
 };
 
-// Parses the header of a PCM WAV file (RIFF, 16-bit PCM or WAVE_FORMAT_EXTENSIBLE PCM).
+// Parses the header of a PCM WAV file (RIFF, integer PCM or WAVE_FORMAT_EXTENSIBLE PCM).
 // On success the file position is left at the start of the sample data.
 bool ParseWavHeader(std::FILE* file, WavInfo* info);
 

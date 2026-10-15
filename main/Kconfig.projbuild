@@ -65,6 +65,11 @@ menu "Boubox Configuration"
             range 0 48
             default 7
 
+        config BOUBOX_I2S_SD_GPIO
+            int "SD (amplifier shutdown) GPIO (-1 if not connected)"
+            range -1 48
+            default 4
+
         config BOUBOX_DEFAULT_VOLUME
             int "Initial volume (0-100)"
             range 0 100

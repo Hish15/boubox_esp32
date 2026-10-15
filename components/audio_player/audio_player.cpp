@@ -51,6 +51,15 @@ esp_err_t AudioPlayer::Init(const Config& config)
     config_ = config;
     volume_ = std::min<uint8_t>(config.initial_volume, 100);
 
+    if (config_.sd != GPIO_NUM_NC)
+    {
+        gpio_config_t sd_io = {};
+        sd_io.pin_bit_mask = 1ULL << config_.sd;
+        sd_io.mode = GPIO_MODE_OUTPUT;
+        ESP_RETURN_ON_ERROR(gpio_config(&sd_io), kTag, "SD GPIO config failed");
+        ESP_RETURN_ON_ERROR(gpio_set_level(config_.sd, 1), kTag, "SD GPIO set failed");
+    }
+
     i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(config_.port, I2S_ROLE_MASTER);
     chan_cfg.auto_clear = true;  // output silence on underrun
     ESP_RETURN_ON_ERROR(i2s_new_channel(&chan_cfg, &tx_, nullptr), kTag, "I2S channel creation failed");

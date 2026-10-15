@@ -28,6 +28,7 @@ public:
         gpio_num_t ws = GPIO_NUM_NC;
         gpio_num_t dout = GPIO_NUM_NC;
         gpio_num_t mclk = GPIO_NUM_NC;
+        gpio_num_t sd = GPIO_NUM_NC;  // amplifier shutdown/enable pin, driven high (optional)
         const char* base_path = "/sdcard";
         uint8_t initial_volume = 30;  // 0..100
         uint8_t volume_step = 5;

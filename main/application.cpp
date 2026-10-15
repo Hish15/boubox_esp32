@@ -24,6 +24,7 @@ esp_err_t Application::Start()
     audio_cfg.bclk = static_cast<gpio_num_t>(CONFIG_BOUBOX_I2S_BCLK_GPIO);
     audio_cfg.ws = static_cast<gpio_num_t>(CONFIG_BOUBOX_I2S_WS_GPIO);
     audio_cfg.dout = static_cast<gpio_num_t>(CONFIG_BOUBOX_I2S_DOUT_GPIO);
+    audio_cfg.sd = static_cast<gpio_num_t>(CONFIG_BOUBOX_I2S_SD_GPIO);
     audio_cfg.base_path = sd_card_.mount_point();
     audio_cfg.initial_volume = CONFIG_BOUBOX_DEFAULT_VOLUME;
     audio_cfg.volume_step = CONFIG_BOUBOX_VOLUME_STEP;

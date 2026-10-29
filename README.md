@@ -6,7 +6,7 @@ ESP32-S3 (ESP-IDF 5.5, C++) firmware of the boubox music box.
 |---|---|---|
 | SD card | SPI2 | MOSI 11, MISO 13, SCLK 12, CS 10 |
 | PN532 NFC | I2C0 (0x24) | SDA 8, SCL 9, RSTPDN not connected |
-| I2S DAC/amp (e.g. MAX98357A, PCM5102) | I2S0 | BCLK 2, WS 1, DOUT 38, SD 4 (amp enable, driven high) |
+| I2S DAC/amp (e.g. MAX98357A, PCM5102) | I2S0 | BCLK 2, WS 1, DOUT 5, SD 4 (amp enable, driven high) |
 | Buttons (to GND) | GPIO | UP 15, DOWN 16, NEXT 17, PREVIOUS 18 |
 
 ## Behaviour

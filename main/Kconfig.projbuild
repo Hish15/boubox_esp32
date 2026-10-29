@@ -63,7 +63,7 @@ menu "Boubox Configuration"
         config BOUBOX_I2S_DOUT_GPIO
             int "DOUT GPIO"
             range 0 48
-            default 7
+            default 5
 
         config BOUBOX_I2S_SD_GPIO
             int "SD (amplifier shutdown) GPIO (-1 if not connected)"

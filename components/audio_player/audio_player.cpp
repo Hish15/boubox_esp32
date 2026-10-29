@@ -57,7 +57,7 @@ esp_err_t AudioPlayer::Init(const Config& config)
         sd_io.pin_bit_mask = 1ULL << config_.sd;
         sd_io.mode = GPIO_MODE_OUTPUT;
         ESP_RETURN_ON_ERROR(gpio_config(&sd_io), kTag, "SD GPIO config failed");
-        ESP_RETURN_ON_ERROR(gpio_set_level(config_.sd, 1), kTag, "SD GPIO set failed");
+        ESP_RETURN_ON_ERROR(gpio_set_level(config_.sd, 0), kTag, "SD GPIO set failed");
     }
 
     i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(config_.port, I2S_ROLE_MASTER);
@@ -199,6 +199,7 @@ void AudioPlayer::HandleCommand(const Command& cmd)
         {
             ESP_LOGI(kTag, "Same folder '%s' presented again: resuming track %d", cmd.folder, index_);
             paused_ = false;
+            SetAmpEnabled(true);
             break;
         }
         StopPlayback();
@@ -213,6 +214,7 @@ void AudioPlayer::HandleCommand(const Command& cmd)
         if (file_ != nullptr && !paused_)
         {
             paused_ = true;
+            SetAmpEnabled(false);
             ESP_LOGI(kTag, "Paused track %d", index_);
         }
         break;
@@ -221,6 +223,7 @@ void AudioPlayer::HandleCommand(const Command& cmd)
         if (file_ != nullptr && paused_)
         {
             paused_ = false;
+            SetAmpEnabled(true);
             ESP_LOGI(kTag, "Resumed track %d", index_);
         }
         break;
@@ -382,6 +385,15 @@ void AudioPlayer::StopPlayback()
         i2s_channel_disable(tx_);
         channel_enabled_ = false;
     }
+    SetAmpEnabled(false);
+}
+
+void AudioPlayer::SetAmpEnabled(bool enabled)
+{
+    if (config_.sd != GPIO_NUM_NC)
+    {
+        gpio_set_level(config_.sd, enabled ? 1 : 0);
+    }
 }
 
 esp_err_t AudioPlayer::PrepareOutput(uint32_t sample_rate)
@@ -405,6 +417,7 @@ esp_err_t AudioPlayer::PrepareOutput(uint32_t sample_rate)
         ESP_RETURN_ON_ERROR(i2s_channel_enable(tx_), kTag, "I2S enable failed");
         channel_enabled_ = true;
     }
+    SetAmpEnabled(true);
     return ESP_OK;
 }
 

@@ -30,7 +30,7 @@ public:
         gpio_num_t mclk = GPIO_NUM_NC;
         gpio_num_t sd = GPIO_NUM_NC;  // amplifier shutdown/enable pin, driven high (optional)
         const char* base_path = "/sdcard";
-        uint8_t initial_volume = 70;  // 0..100
+        uint8_t initial_volume = 100;  // 0..100
         uint8_t volume_step = 5;
         uint32_t restart_threshold_ms = 3000;  // "Previous" restarts the track after this much playback
     };
@@ -87,6 +87,8 @@ private:
     bool OpenTrack(const std::string& path);
     void CloseTrack();
     void StopPlayback();
+    // Drives the amplifier shutdown pin: output is muted unless audio is playing.
+    void SetAmpEnabled(bool enabled);
     bool StreamChunk();
     esp_err_t PrepareOutput(uint32_t sample_rate);
 
